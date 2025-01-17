@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 type GameResult struct {
@@ -14,12 +15,13 @@ type GameResult struct {
 	YourSelection     string `json:"yourSelection"`
 }
 
-type Stats struct {
-	TotalGames int `json:"totalGames"`
-	Wins       int `json:"wins"`
-}
-
 func main() {
+	// Get port from environment variable or default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	// Initialize templates
 	tmpl, err := template.ParseFiles("templates/game.html")
 	if err != nil {
@@ -28,6 +30,11 @@ func main() {
 
 	// Serve the main page
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Add security headers
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+
 		err := tmpl.Execute(w, nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -35,46 +42,51 @@ func main() {
 		}
 	})
 
-	// Proxy endpoint for game
+	// Proxy endpoints with additional error handling
 	http.HandleFunc("/play", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
 		selection := r.URL.Query().Get("yourSelection")
+		if selection == "" {
+			http.Error(w, "Missing selection parameter", http.StatusBadRequest)
+			return
+		}
 
 		resp, err := http.Get("http://golangsite1204.chickenkiller.com/api/play?yourSelection=" + selection)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Failed to reach game server", http.StatusServiceUnavailable)
 			return
 		}
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Error reading response", http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		w.Write(body)
 	})
 
-	// Proxy endpoint for stats
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
 		resp, err := http.Get("http://golangsite1204.chickenkiller.com/api/stats")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Failed to reach stats server", http.StatusServiceUnavailable)
 			return
 		}
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Error reading stats", http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		w.Write(body)
 	})
 
-	log.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("Server starting on port %s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
