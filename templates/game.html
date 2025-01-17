@@ -27,12 +27,26 @@
         button:hover {
             background-color: #45a049;
         }
-        #result {
+        #result, #stats {
             margin-top: 20px;
             padding: 20px;
             border-radius: 5px;
             background-color: #f0f0f0;
-            display: none;
+        }
+        .stats-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 300px;
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .stats-table th {
+            background-color: #4CAF50;
+            color: white;
         }
     </style>
 </head>
@@ -43,12 +57,56 @@
         <button onclick="play('Paper')">Paper</button>
         <button onclick="play('Scissors')">Scissors</button>
     </div>
-    <div id="result"></div>
+    <div id="result" style="display: none;"></div>
+    <div id="stats">
+        <h2>Game Statistics</h2>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Total Games</th>
+                    <th>Wins</th>
+                    <th>Win Rate</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody">
+                <tr>
+                    <td colspan="3">Loading stats...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <script>
+        // Function to update stats
+        async function updateStats() {
+            try {
+                const response = await fetch('/stats');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const stats = await response.json();
+                
+                const winRate = ((stats.wins / stats.totalGames) * 100).toFixed(1);
+                
+                document.getElementById('statsBody').innerHTML = `
+                    <tr>
+                        <td>${stats.totalGames}</td>
+                        <td>${stats.wins}</td>
+                        <td>${winRate}%</td>
+                    </tr>
+                `;
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+                document.getElementById('statsBody').innerHTML = `
+                    <tr>
+                        <td colspan="3">Error loading stats</td>
+                    </tr>
+                `;
+            }
+        }
+
         async function play(selection) {
             try {
-                // Now using our local proxy endpoint
                 const response = await fetch(`/play?yourSelection=${selection}`);
                 
                 if (!response.ok) {
@@ -66,11 +124,17 @@
                     <p>Computer's Selection: ${data.computerSelection}</p>
                     <p>Winner: ${data.winner}</p>
                 `;
+
+                // Update stats after each game
+                await updateStats();
             } catch (error) {
                 console.error('Error:', error);
                 alert('An error occurred while playing the game: ' + error.message);
             }
         }
+
+        // Initial stats load
+        updateStats();
     </script>
 </body>
 </html>

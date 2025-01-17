@@ -14,6 +14,11 @@ type GameResult struct {
 	YourSelection     string `json:"yourSelection"`
 }
 
+type Stats struct {
+	TotalGames int `json:"totalGames"`
+	Wins       int `json:"wins"`
+}
+
 func main() {
 	// Initialize templates
 	tmpl, err := template.ParseFiles("templates/game.html")
@@ -30,11 +35,10 @@ func main() {
 		}
 	})
 
-	// Proxy endpoint
+	// Proxy endpoint for game
 	http.HandleFunc("/play", func(w http.ResponseWriter, r *http.Request) {
 		selection := r.URL.Query().Get("yourSelection")
 
-		// Forward the request to the actual API
 		resp, err := http.Get("http://golangsite1204.chickenkiller.com/api/play?yourSelection=" + selection)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -42,17 +46,32 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		// Read the response
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Set JSON header
 		w.Header().Set("Content-Type", "application/json")
+		w.Write(body)
+	})
 
-		// Write the response back to the client
+	// Proxy endpoint for stats
+	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		resp, err := http.Get("http://golangsite1204.chickenkiller.com/api/stats")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
 		w.Write(body)
 	})
 
