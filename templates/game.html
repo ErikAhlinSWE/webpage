@@ -1,0 +1,76 @@
+<!-- templates/game.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rock Paper Scissors Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .buttons {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rock Paper Scissors Game</h1>
+    <div class="buttons">
+        <button onclick="play('Rock')">Rock</button>
+        <button onclick="play('Paper')">Paper</button>
+        <button onclick="play('Scissors')">Scissors</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        async function play(selection) {
+            try {
+                // Now using our local proxy endpoint
+                const response = await fetch(`/play?yourSelection=${selection}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Game Result:', data);
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h2>Game Result:</h2>
+                    <p>Your Selection: ${data.yourSelection}</p>
+                    <p>Computer's Selection: ${data.computerSelection}</p>
+                    <p>Winner: ${data.winner}</p>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while playing the game: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
