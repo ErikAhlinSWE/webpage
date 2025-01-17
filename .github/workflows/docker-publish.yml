@@ -1,1 +1,28 @@
-#Test
+
+name: Eriks Docker image Creation
+
+# tigger AWS/Azure
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+# phases AWS
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    # - = items i en lista
+    steps:
+    - uses: actions/checkout@v4
+    - uses: mr-smithers-excellent/docker-build-push@v6
+      name: Build & push Docker image
+      with:
+        image: erikswe/webpageimage
+        tags: latest
+        registry: docker.io
+        dockerfile: Dockerfile
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
