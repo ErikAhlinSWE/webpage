@@ -12,7 +12,7 @@ COPY . .
 
 # Build the app
 RUN go get -d -v
-RUN go build -o /app/cmd/main
+RUN go build -o main .
 
 # Expose port (note: this is just documentation)
 EXPOSE 8080
