@@ -3,6 +3,7 @@
 <html>
 <head>
     <title>Rock Paper Scissors Game</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -53,9 +54,13 @@
 <body>
     <h1>Rock Paper Scissors Game</h1>
     <div class="buttons">
-        <button onclick="play('Rock')"><img src="img/rock_image.png"/></button>
-        <button onclick="play('Paper')"><img src="img/paper_image.png"/></button>
-        <button onclick="play('Scissors')"><img src="img/scissors_image.png"/></button>
+        
+        <button style="color: white;" class=" p-3 m-3 rounded-md  text-center cursor-pointer bg-fuchsia-300 "
+                onclick="play('Rock')" p-8>Rock</button>
+                <button style="color: white;" class=" p-3 m-3 rounded-md btn-outline-danger text-center cursor-pointer bg-lime-400 "
+                onclick="play('Paper')" p-8>Paper</button>
+            <button style="color: white;" class=" p-3 m-3 rounded-md btn-outline-success text-center cursor-pointer bg-pink-600 "
+                onclick="play('Scissors')" p-8>Scissors</button>
     </div>
     <div id="result" style="display: none;"></div>
     <div id="stats">
