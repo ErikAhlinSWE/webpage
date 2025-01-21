@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Welcome - Rock Paper Scissors</title>
+    <title>Welcome - My school project</title>
     <style>
         .card-container {
             display: flex;
@@ -55,11 +55,11 @@
 </head>
 <body>
     <!-- Include header -->
-    {% include 'header.html' %}
+    {{ template "header" . }}
     
     <div class="content">
         <div class="welcome-text">
-            <h2>Welcome to Rock Paper Scissors Game</h2>
+            <h2>Welcome to my school project.</h2>
             <p>Choose what you would like to do today:</p>
         </div>
         
@@ -80,13 +80,12 @@
                 </div>
                 <div class="card-content">
                     <h2>Manage Customers</h2>
-                    <p>View, add, and manage customer information in our database.</p>
+                    <p>View, add, and manage customer information in a database.</p>
                 </div>
             </a>
         </div>
     </div>
-
     <!-- Include footer -->
-    {% include 'footer.html' %}
+    {{template "footer" . }}
 </body>
 </html>

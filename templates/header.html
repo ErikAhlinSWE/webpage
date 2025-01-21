@@ -1,4 +1,5 @@
 <!-- templates/header.html -->
+{{ define "header" }}
 <!DOCTYPE html>
 <html>
 <head>
@@ -52,11 +53,13 @@
 </head>
 <body>
     <header class="header">
-        <h1>Rock Paper Scissors Game</h1>
+        <h1>My School Project</h1>
         <nav class="nav">
-            <a href="/">Game</a>
+            <a href="/">Home</a>
+            <a href="/game">Game</a>
             <a href="/customer">Customers</a>
         </nav>
     </header>
     <main class="content">
+{{ end }}
         <!-- Content will be inserted here -->

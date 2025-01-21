@@ -59,40 +59,64 @@
             text-align: center;
             margin-bottom: 2rem;
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
     <!-- Include header -->
-    {% include 'header.html' %}
+    {{ template "header" . }}
     
     <div class="content">
         <h2 class="page-title">Customer Management</h2>
         
         <div class="add-customer-form">
-            <h3>Add New Customer</h3>
+            <h3 id="formTitle">Add New Customer</h3>
             <form id="customerForm">
+                <input type="hidden" id="customerId" name="id">
                 <div class="form-group">
                     <label for="name">Name:</label>
                     <input type="text" id="name" name="name" required>
                 </div>
                 <div class="form-group">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
+                    <label for="city">City:</label>
+                    <input type="text" id="city" name="city" required>
                 </div>
                 <div class="form-group">
-                    <label for="phone">Phone:</label>
-                    <input type="tel" id="phone" name="phone" required>
+                    <label for="telephoneCountryCode">Telephone Country Code:</label>
+                    <input type="text" id="telephoneCountryCode" name="telephoneCountryCode" required>
                 </div>
-                <button type="submit" class="submit-button">Add Customer</button>
+                <div class="form-group">
+                    <label for="telephone">Telephone:</label>
+                    <input type="tel" id="telephone" name="telephone" required>
+                </div>
+                <button type="submit" class="submit-button" id="submitButton">Add Customer</button>
             </form>
         </div>
 
         <table class="customer-table">
             <thead>
                 <tr>
+                    <th>Id</th>
                     <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
+                    <th>City</th>
+                    <th>Telephone Country Code</th>
+                    <th>Telephone</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -100,13 +124,21 @@
                 <!-- Customer data will be populated here -->
             </tbody>
         </table>
+
+        <div class="pagination">
+            <button id="prevPage" onclick="changePage(-1)">Previous</button>
+            <button id="nextPage" onclick="changePage(1)">Next</button>
+        </div>
     </div>
 
-    <!-- Include footer -->
-    {% include 'footer.html' %}
+     <!-- Include footer -->
+     {{ template "footer" . }}
 
     <script>
-        // Your existing JavaScript code remains the same
+        let currentPage = 1;
+        const customersPerPage = 20;
+        let isEditing = false;
+        
         async function loadCustomers() {
             try {
                 const response = await fetch('/api/customers');
@@ -114,64 +146,90 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const customers = await response.json();
-                
-                const tableBody = document.getElementById('customerTableBody');
-                tableBody.innerHTML = customers.map(customer => `
-                    <tr>
-                        <td>${customer.name}</td>
-                        <td>${customer.email}</td>
-                        <td>${customer.phone}</td>
-                        <td>
-                            <button onclick="deleteCustomer('${customer.id}')" style="background-color: #ff4444;">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
+                displayCustomers(customers);
             } catch (error) {
                 console.error('Error loading customers:', error);
             }
         }
-
+        
+        function displayCustomers(customers) {
+            const tableBody = document.getElementById('customerTableBody');
+            const start = (currentPage - 1) * customersPerPage;
+            const end = start + customersPerPage;
+            const paginatedCustomers = customers.slice(start, end);
+        
+            tableBody.innerHTML = paginatedCustomers.map(customer => `
+                <tr>
+                    <td>${customer.Id}</td>
+                    <td>${customer.Name}</td>
+                    <td>${customer.City}</td>
+                    <td>${customer.TelephoneCountryCode !== undefined ? customer.TelephoneCountryCode : ''}</td>
+                    <td>${customer.Telephone !== undefined ? customer.Telephone : ''}</td>
+                    <td>
+                        <button onclick="deleteCustomer('${customer.Id}')" style="background-color: #ff4444;">Delete</button>
+                        <button onclick="editCustomer('${customer.Id}', '${customer.Name}', '${customer.City}', '${customer.TelephoneCountryCode}', '${customer.Telephone}')" style="background-color: #4CAF50;">Edit</button>
+                    </td>
+                </tr>
+            `).join('');
+        
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = end >= customers.length;
+        }
+        
+        function changePage(direction) {
+            currentPage += direction;
+            loadCustomers();
+        }
+        
         document.getElementById('customerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const formData = {
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value
+                Name: document.getElementById('name').value,
+                City: document.getElementById('city').value,
+                TelephoneCountryCode: document.getElementById('telephoneCountryCode').value,
+                Telephone: document.getElementById('telephone').value
             };
 
+            const customerId = document.getElementById('customerId').value;
+            const method = isEditing ? 'PUT' : 'POST';
+            const url = isEditing ? `/api/customers/${customerId}` : '/api/customers';
+        
             try {
-                const response = await fetch('/api/customers', {
-                    method: 'POST',
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(formData)
                 });
-
+        
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
+        
                 document.getElementById('customerForm').reset();
+                document.getElementById('formTitle').innerText = 'Add New Customer';
+                document.getElementById('submitButton').innerText = 'Add Customer';
+                isEditing = false;
                 await loadCustomers();
             } catch (error) {
-                console.error('Error adding customer:', error);
-                alert('Error adding customer: ' + error.message);
+                console.error(`Error ${isEditing ? 'updating' : 'adding'} customer:`, error);
+                alert(`Error ${isEditing ? 'updating' : 'adding'} customer: ` + error.message);
             }
         });
-
+        
         async function deleteCustomer(id) {
             if (confirm('Are you sure you want to delete this customer?')) {
                 try {
                     const response = await fetch(`/api/customers/${id}`, {
                         method: 'DELETE'
                     });
-
+        
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-
+        
                     await loadCustomers();
                 } catch (error) {
                     console.error('Error deleting customer:', error);
@@ -179,8 +237,19 @@
                 }
             }
         }
-
-        loadCustomers();
+        
+        function editCustomer(id, name, city, telephoneCountryCode, telephone) {
+            document.getElementById('customerId').value = id;
+            document.getElementById('name').value = name;
+            document.getElementById('city').value = city;
+            document.getElementById('telephoneCountryCode').value = telephoneCountryCode;
+            document.getElementById('telephone').value = telephone;
+            document.getElementById('formTitle').innerText = 'Update Customer';
+            document.getElementById('submitButton').innerText = 'Update Customer';
+            isEditing = true;
+        }
+        
+        loadCustomers();    
     </script>
 </body>
 </html>

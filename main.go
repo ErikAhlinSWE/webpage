@@ -2,25 +2,31 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
-type GameResult struct {
-	ComputerSelection string `json:"computerSelection"`
+type Game struct {
+	Id                int
+	CreatedAt         time.Time
 	Winner            string `json:"winner"`
 	YourSelection     string `json:"yourSelection"`
+	ComputerSelection string `json:"computerSelection"`
 }
 
 type Customer struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
+	ID                   string `json:"id"`
+	Name                 string `json:"name"`
+	City                 string `json:"city"`
+	TelephoneCountryCode string `json:"TelephoneCountryCode"`
+	Telephone            string `json:"Telephone"`
 }
 
 func main() {
@@ -34,6 +40,11 @@ func main() {
 	tmpl, err := template.ParseGlob("templates/*.html")
 	if err != nil {
 		log.Fatal("Error parsing templates:", err)
+	}
+
+	// Debug: Lista alla mallar som laddats
+	for _, t := range tmpl.Templates() {
+		log.Println("Loaded template:", t.Name())
 	}
 
 	// Add security headers middleware
@@ -109,9 +120,20 @@ func main() {
 
 		log.Printf("API Response: %s", string(body))
 
-		// Skicka svaret direkt till klienten utan att försöka parsa det
-		w.WriteHeader(resp.StatusCode)
-		w.Write(body)
+		// Trimma bort eventuella prefix ("You", "Computer", "Tie")
+		trimmedBody := strings.TrimPrefix(string(body), "You")
+		trimmedBody = strings.TrimPrefix(trimmedBody, "Computer")
+		trimmedBody = strings.TrimPrefix(trimmedBody, "Tie")
+
+		var result Game
+		err = json.Unmarshal([]byte(trimmedBody), &result)
+		if err != nil {
+			log.Printf("Error unmarshalling JSON: %v", err)
+			http.Error(w, "Error parsing response", http.StatusInternalServerError)
+			return
+		}
+
+		json.NewEncoder(w).Encode(result)
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
@@ -139,6 +161,7 @@ func main() {
 
 		switch r.Method {
 		case "GET":
+			// Fetch all customers from the specified URL and forward the response to the client
 			resp, err := http.Get("http://pythonsite0115.crabdance.com/api/customer")
 			if err != nil {
 				http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
@@ -155,17 +178,17 @@ func main() {
 			w.Write(body)
 
 		case "POST":
-			// Läs request body
+			// Read the request body
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "Error reading request body", http.StatusBadRequest)
 				return
 			}
 
-			// Skapa en ny reader från body-innehållet
+			// Create a new reader from the body content
 			bodyReader := bytes.NewBuffer(body)
 
-			// Använd bodyReader i POST-anropet
+			// Use bodyReader in the POST request
 			resp, err := http.Post("http://pythonsite0115.crabdance.com/api/customer",
 				"application/json",
 				bodyReader)
@@ -189,36 +212,101 @@ func main() {
 	})
 
 	http.HandleFunc("/api/customers/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "DELETE" {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Get customer ID from URL
 		customerID := filepath.Base(r.URL.Path)
 
-		// Create DELETE request
-		req, err := http.NewRequest("DELETE",
-			"http://pythonsite0115.crabdance.com/api/customer/"+customerID,
-			nil)
-		if err != nil {
-			http.Error(w, "Error creating request", http.StatusInternalServerError)
-			return
-		}
+		switch r.Method {
+		case "DELETE":
+			// Create DELETE request
+			req, err := http.NewRequest("DELETE",
+				"http://pythonsite0115.crabdance.com/api/customer/"+customerID,
+				nil)
+			if err != nil {
+				log.Printf("Error creating request: %v", err)
+				http.Error(w, "Error creating request", http.StatusInternalServerError)
+				return
+			}
 
-		// Send request
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
-			return
-		}
-		defer resp.Body.Close()
+			// Send request
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Printf("Error: %v", err)
+				http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
+				return
+			}
+			defer resp.Body.Close()
 
-		// Forward response status
-		w.WriteHeader(resp.StatusCode)
+			// Log response status
+			log.Printf("Response Status: %d", resp.StatusCode)
+
+			// Forward response status
+			w.WriteHeader(resp.StatusCode)
+
+			// Log response body
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("Error reading response body: %v", err)
+				http.Error(w, "Error reading response", http.StatusInternalServerError)
+				return
+			}
+			log.Printf("Response Body: %s", string(responseBody))
+			w.Write(responseBody)
+
+		case "PUT":
+			// Read the request body
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				log.Printf("Error reading request body: %v", err)
+				http.Error(w, "Error reading request body", http.StatusBadRequest)
+				return
+			}
+
+			// Create a new reader from the body content
+			bodyReader := bytes.NewBuffer(body)
+
+			// Use bodyReader in the PUT request
+			req, err := http.NewRequest("PUT",
+				"http://pythonsite0115.crabdance.com/api/customer/"+customerID,
+				bodyReader)
+			if err != nil {
+				log.Printf("Error creating request: %v", err)
+				http.Error(w, "Error creating request", http.StatusInternalServerError)
+				return
+			}
+
+			// Set the Content-Type header
+			req.Header.Set("Content-Type", "application/json")
+
+			// Send request
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Printf("Error: %v", err)
+				http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
+				return
+			}
+			defer resp.Body.Close()
+
+			// Log response status
+			log.Printf("Response Status: %d", resp.StatusCode)
+
+			// Forward response status
+			w.WriteHeader(resp.StatusCode)
+
+			// Log response body
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("Error reading response body: %v", err)
+				http.Error(w, "Error reading response", http.StatusInternalServerError)
+				return
+			}
+			log.Printf("Response Body: %s", string(responseBody))
+			w.Write(responseBody)
+
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
 	})
-
 	log.Printf("Server starting on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

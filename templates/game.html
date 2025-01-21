@@ -50,7 +50,7 @@
 </head>
 <body>
     <!-- Include header -->
-    {% include 'header.html' %}
+    {{ template "header" . }}
     
     <div class="content">
         <h2 class="page-title">Play Rock Paper Scissors</h2>
@@ -81,8 +81,7 @@
     </div>
 
     <!-- Include footer -->
-    {% include 'footer.html' %}
-
+    {{ template "footer" . }}
     <script>
         // Your existing JavaScript code remains the same
         async function updateStats() {
