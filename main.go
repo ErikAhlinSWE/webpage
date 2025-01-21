@@ -1,19 +1,26 @@
-// main.go
 package main
 
 import (
+	"bytes"
 	"html/template"
 	"io/ioutil"
 	"log"
-
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type GameResult struct {
 	ComputerSelection string `json:"computerSelection"`
 	Winner            string `json:"winner"`
 	YourSelection     string `json:"yourSelection"`
+}
+
+type Customer struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
 }
 
 func main() {
@@ -23,27 +30,56 @@ func main() {
 		port = "8080"
 	}
 
-	// Initialize templates
-	tmpl, err := template.ParseFiles("templates/game.html")
+	// Initialize templates with glob pattern to include all template files
+	tmpl, err := template.ParseGlob("templates/*.html")
 	if err != nil {
-		log.Fatal("Error parsing template:", err)
+		log.Fatal("Error parsing templates:", err)
 	}
 
-	// Serve the main page
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Add security headers
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
+	// Add security headers middleware
+	addSecurityHeaders := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("X-XSS-Protection", "1; mode=block")
+			next(w, r)
+		}
+	}
 
-		err := tmpl.Execute(w, nil)
+	// Serve static files if needed
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Route handlers
+	http.HandleFunc("/", addSecurityHeaders(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		err := tmpl.ExecuteTemplate(w, "index.html", nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	})
+	}))
 
-	// Proxy endpoints with additional error handling
+	http.HandleFunc("/game", addSecurityHeaders(func(w http.ResponseWriter, r *http.Request) {
+		err := tmpl.ExecuteTemplate(w, "game.html", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}))
+
+	http.HandleFunc("/customer", addSecurityHeaders(func(w http.ResponseWriter, r *http.Request) {
+		err := tmpl.ExecuteTemplate(w, "customer.html", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}))
+
+	// Game API endpoints
 	http.HandleFunc("/play", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -68,7 +104,7 @@ func main() {
 
 		w.Write(body)
 	})
-	// Proxy endpoints with additional error handling
+
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -86,6 +122,92 @@ func main() {
 		}
 
 		w.Write(body)
+	})
+
+	// Customer API endpoints
+	http.HandleFunc("/api/customers", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.Method {
+		case "GET":
+			resp, err := http.Get("http://pythonsite0115.crabdance.com/api/customer")
+			if err != nil {
+				http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
+				return
+			}
+			defer resp.Body.Close()
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				http.Error(w, "Error reading customers", http.StatusInternalServerError)
+				return
+			}
+
+			w.Write(body)
+
+		case "POST":
+			// Läs request body
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Error reading request body", http.StatusBadRequest)
+				return
+			}
+
+			// Skapa en ny reader från body-innehållet
+			bodyReader := bytes.NewBuffer(body)
+
+			// Använd bodyReader i POST-anropet
+			resp, err := http.Post("http://pythonsite0115.crabdance.com/api/customer",
+				"application/json",
+				bodyReader)
+			if err != nil {
+				http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
+				return
+			}
+			defer resp.Body.Close()
+
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				http.Error(w, "Error reading response", http.StatusInternalServerError)
+				return
+			}
+
+			w.Write(responseBody)
+
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc("/api/customers/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Get customer ID from URL
+		customerID := filepath.Base(r.URL.Path)
+
+		// Create DELETE request
+		req, err := http.NewRequest("DELETE",
+			"http://pythonsite0115.crabdance.com/api/customer/"+customerID,
+			nil)
+		if err != nil {
+			http.Error(w, "Error creating request", http.StatusInternalServerError)
+			return
+		}
+
+		// Send request
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, "Failed to reach customer server", http.StatusServiceUnavailable)
+			return
+		}
+		defer resp.Body.Close()
+
+		// Forward response status
+		w.WriteHeader(resp.StatusCode)
 	})
 
 	log.Printf("Server starting on port %s", port)
