@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	_ "main/docs"
 	"net/http"
 	"os"
 )
