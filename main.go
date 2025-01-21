@@ -68,7 +68,7 @@ func main() {
 
 		w.Write(body)
 	})
-
+	// Proxy endpoints with additional error handling
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 

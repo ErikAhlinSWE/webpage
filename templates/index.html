@@ -1,0 +1,92 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome - Rock Paper Scissors</title>
+    <style>
+        .card-container {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem auto;
+            flex-wrap: wrap;
+        }
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-image {
+            height: 200px;
+            background-color: #4CAF50;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+        }
+        .card-content {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .card h2 {
+            margin: 0 0 1rem 0;
+            color: #333;
+        }
+        .card p {
+            margin: 0;
+            color: #666;
+        }
+        .welcome-text {
+            text-align: center;
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include header -->
+    {% include 'header.html' %}
+    
+    <div class="content">
+        <div class="welcome-text">
+            <h2>Welcome to Rock Paper Scissors Game</h2>
+            <p>Choose what you would like to do today:</p>
+        </div>
+        
+        <div class="card-container">
+            <a href="/game" class="card">
+                <div class="card-image">
+                    🎮
+                </div>
+                <div class="card-content">
+                    <h2>Play Game</h2>
+                    <p>Play Rock Paper Scissors against the computer and track your statistics.</p>
+                </div>
+            </a>
+            
+            <a href="/customer" class="card">
+                <div class="card-image">
+                    👥
+                </div>
+                <div class="card-content">
+                    <h2>Manage Customers</h2>
+                    <p>View, add, and manage customer information in our database.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Include footer -->
+    {% include 'footer.html' %}
+</body>
+</html>

@@ -4,9 +4,15 @@
 <head>
     <title>Rock Paper Scissors Game</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
         .buttons {
             margin: 20px 0;
-            text-align: center;
         }
         button {
             padding: 10px 20px;
@@ -42,49 +48,41 @@
             background-color: #4CAF50;
             color: white;
         }
-        .page-title {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
     </style>
 </head>
 <body>
-    <!-- Include header -->
-    {% include 'header.html' %}
-    
-    <div class="content">
-        <h2 class="page-title">Play Rock Paper Scissors</h2>
-        
-        <div class="buttons">
-            <button onclick="play('Rock')">Rock</button>
-            <button onclick="play('Paper')">Paper</button>
-            <button onclick="play('Scissors')">Scissors</button>            
-        </div>
-        <div id="result" style="display: none;"></div>
-        <div id="stats">
-            <h2>Game Statistics</h2>
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        <th>Total Games</th>
-                        <th>Wins</th>
-                        <th>Win Rate</th>
-                    </tr>
-                </thead>
-                <tbody id="statsBody">
-                    <tr>
-                        <td colspan="3">Loading stats...</td>
-                    </tr>
-                </tbody>
-            </table>
+    <h1>Rock Paper Scissors Game</h1>
+    <div class="buttons">
+        <button onclick="play('Rock')">Rock</button>
+        <button onclick="play('Paper')">Paper</button>
+        <button onclick="play('Scissors')">Scissors</button>            
+    </div>
+    <div id="result" style="display: none;"></div>
+    <div id="stats">
+        <h2>Game Statistics</h2>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Total Games</th>
+                    <th>Wins</th>
+                    <th>Win Rate</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody">
+                <tr>
+                    <td colspan="3">Loading stats...</td>
+                </tr>
+            </tbody>
+        </table>
+        <div>
+            <p>
+                <a href="http://pythonsite0115.crabdance.com/api/customer" target="_blank"> pythonsite api!</a><br>
+                <a href="http://golangsite1204.chickenkiller.com/swagger/index.html" target="_blank">Swagger documentation - golangapi</a>
+            </p>
         </div>
     </div>
-
-    <!-- Include footer -->
-    {% include 'footer.html' %}
-
     <script>
-        // Your existing JavaScript code remains the same
+        // Function to update stats
         async function updateStats() {
             try {
                 const response = await fetch('/stats');
@@ -132,6 +130,7 @@
                     <p>Winner: ${data.winner}</p>
                 `;
 
+                // Update stats after each game
                 await updateStats();
             } catch (error) {
                 console.error('Error:', error);
@@ -139,6 +138,7 @@
             }
         }
 
+        // Initial stats load
         updateStats();
     </script>
 </body>
