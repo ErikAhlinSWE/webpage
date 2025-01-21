@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -102,7 +103,22 @@ func main() {
 			return
 		}
 
-		w.Write(body)
+		// Verifiera att svaret är giltigt JSON
+		var result GameResult
+		if err := json.Unmarshal(body, &result); err != nil {
+			log.Printf("Invalid JSON response from API: %s", string(body))
+			http.Error(w, "Invalid response from game server", http.StatusInternalServerError)
+			return
+		}
+
+		// Konvertera tillbaka till JSON och skicka svaret
+		response, err := json.Marshal(result)
+		if err != nil {
+			http.Error(w, "Error processing response", http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(response)
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
